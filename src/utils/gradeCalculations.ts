@@ -14,8 +14,6 @@ export const GRADE_SCALE: Record<Grade, GradeInfo> = {
 export const calculateRequiredMarks = (internalMarks: number, credits: number) => {
   const x = 90 - internalMarks;
 
-  const semEndMarksForO = credits === 1 ? x : x * 2;
-
   const getRequired = (deduction: number) => {
     const base = credits === 1 ? x : x * 2;
     const required = base - deduction;
@@ -23,13 +21,13 @@ export const calculateRequiredMarks = (internalMarks: number, credits: number) =
   };
 
   return {
-    O: credits === 1 ? Math.max(17.5, semEndMarksForO) : Math.max(35, semEndMarksForO),
-    'A+': getRequired(10),
-    'A': getRequired(20),
-    'B+': getRequired(30),
-    'B': getRequired(35),
-    'C': getRequired(40),
-    'P': getRequired(50)
+    O: credits === 1 ? Math.max(17.5, x) : Math.max(35, x * 2),
+    'A+': getRequired(credits === 1 ? 10 : 20),
+    'A': getRequired(credits === 1 ? 20 : 40),
+    'B+': getRequired(credits === 1 ? 30 : 60),
+    'B': getRequired(credits === 1 ? 35 : 70),
+    'C': getRequired(credits === 1 ? 40 : 80),
+    'P': getRequired(credits === 1 ? 50 : 100)
   };
 };
 
