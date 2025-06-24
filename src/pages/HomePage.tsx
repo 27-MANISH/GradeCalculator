@@ -185,7 +185,7 @@ export const HomePage: React.FC = () => {
     onChange={(e) => setConsentGiven(e.target.checked)}
   />
   <label htmlFor="consent" className="text-sm text-gray-700 dark:text-gray-300">
-    I agree to the <a href="/home/project/.docx" className="underline text-blue-600 dark:text-blue-400" target="_blank">Terms & Conditions and Privacy Policy </a>
+    I agree to the <a href="https://docs.google.com/document/d/1x7guSef6BOTKur2BqpKNEmquUMI3klmacidUbFcKVyA/edit?usp=sharing" className="underline text-blue-600 dark:text-blue-400" target="_blank">Terms & Conditions and Privacy Policy </a>
    
   </label>
 </div>
