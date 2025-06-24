@@ -1,79 +1,35 @@
 import { Grade, GradeInfo, Subject, PreviousSemester } from '../types';
 
 export const GRADE_SCALE: Record<Grade, GradeInfo> = {
-  O: { points: 10, minMarks: 90, maxMarks: 100, level: 'Outstanding' },
+  'O': { points: 10, minMarks: 90, maxMarks: 100, level: 'Outstanding' },
   'A+': { points: 9, minMarks: 80, maxMarks: 89, level: 'Excellent' },
-  A: { points: 8, minMarks: 70, maxMarks: 79, level: 'Very Good' },
+  'A': { points: 8, minMarks: 70, maxMarks: 79, level: 'Very Good' },
   'B+': { points: 7, minMarks: 60, maxMarks: 69, level: 'Good' },
-  B: { points: 6, minMarks: 55, maxMarks: 59, level: 'Above Average' },
-  C: { points: 5, minMarks: 50, maxMarks: 54, level: 'Average' },
-  P: { points: 4, minMarks: 40, maxMarks: 49, level: 'Pass' },
-  F: { points: 0, minMarks: 0, maxMarks: 39, level: 'Fail' },
+  'B': { points: 6, minMarks: 55, maxMarks: 59, level: 'Above Average' },
+  'C': { points: 5, minMarks: 50, maxMarks: 54, level: 'Average' },
+  'P': { points: 4, minMarks: 40, maxMarks: 49, level: 'Pass' },
+  'F': { points: 0, minMarks: 0, maxMarks: 39, level: 'Fail' }
 };
 
-export const calculateRequiredMarks = (
-  internalMarks: number,
-  credits: number
-): Record<Grade, number> => {
-  if (credits === 1) {
-    // For 1-credit subjects: Internal 50 + External 50 = Total 100
-    const getRequiredFor1Credit = (targetPercentage: number) => {
-      const requiredTotal = targetPercentage;
-      const requiredExternal = requiredTotal - internalMarks;
-      return Math.max(0, requiredExternal); // Allow impossible values for detection
-    };
+export const calculateRequiredMarks = (internalMarks: number, credits: number) => {
+  const x = 90 - internalMarks;
 
-    return {
-      O: getRequiredFor1Credit(90),
-      'A+': getRequiredFor1Credit(80),
-      A: getRequiredFor1Credit(70),
-      'B+': getRequiredFor1Credit(60),
-      B: getRequiredFor1Credit(55),
-      C: getRequiredFor1Credit(50),
-      P: getRequiredFor1Credit(40),
-      F: getRequiredFor1Credit(0),
-    };
-  } else {
-    // For multi-credit subjects: Internal 50 + External 100 = Total 150
-    // Grade calculation: (Internal + External/2) = Total out of 100
-    const getRequiredForMultiCredit = (targetPercentage: number) => {
-      const requiredTotal = targetPercentage;
-      const requiredExternal = (requiredTotal - internalMarks) * 2;
-      return Math.max(0, requiredExternal); // Allow impossible values for detection
-    };
+  const semEndMarksForO = credits === 1 ? x : x * 2;
 
-    return {
-      O: getRequiredForMultiCredit(90),
-      'A+': getRequiredForMultiCredit(80),
-      A: getRequiredForMultiCredit(70),
-      'B+': getRequiredForMultiCredit(60),
-      B: getRequiredForMultiCredit(55),
-      C: getRequiredForMultiCredit(50),
-      P: getRequiredForMultiCredit(40),
-      F: getRequiredForMultiCredit(0),
-    };
-  }
-};
+  const getRequired = (offset: number) => {
+    const requiredMarks = semEndMarksForO - offset;
+    return credits === 1 ? Math.max(17.5, requiredMarks) : Math.max(35, requiredMarks);
+  };
 
-export const getMinimumExternalMarks = (credits: number): number => {
-  return credits === 1 ? 17.5 : 35;
-};
-
-export const getMaximumExternalMarks = (credits: number): number => {
-  return credits === 1 ? 50 : 100;
-};
-
-export const isGradePossible = (
-  grade: Grade,
-  internalMarks: number,
-  credits: number
-): boolean => {
-  const requiredMarks = calculateRequiredMarks(internalMarks, credits);
-  const maxMarks = getMaximumExternalMarks(credits);
-  const minMarks = getMinimumExternalMarks(credits);
-  
-  const required = requiredMarks[grade];
-  return required <= maxMarks && required >= minMarks;
+  return {
+    O: credits === 1 ? Math.max(17.5, semEndMarksForO) : Math.max(35, semEndMarksForO),
+    'A+': getRequired(10),
+    'A': getRequired(20),
+    'B+': getRequired(30),
+    'B': getRequired(35),
+    'C': getRequired(40),
+    'P': getRequired(50)
+  };
 };
 
 export const getGradeFromTotalMarks = (totalPercentage: number): Grade => {
@@ -89,32 +45,24 @@ export const getGradeFromTotalMarks = (totalPercentage: number): Grade => {
 
 export const calculateSubjectGrade = (subject: Subject): Subject => {
   const requiredMarks = calculateRequiredMarks(subject.internalMarks, subject.credits);
-  
+
   let estimatedExternalMarks: number;
   let selectedGrade: Grade;
 
-  if (subject.selectedGrade && isGradePossible(subject.selectedGrade, subject.internalMarks, subject.credits)) {
-    // Use selected grade if it's possible
-    estimatedExternalMarks = Math.max(
-      requiredMarks[subject.selectedGrade],
-      getMinimumExternalMarks(subject.credits)
-    );
+  if (subject.selectedGrade && requiredMarks[subject.selectedGrade] !== undefined) {
+    estimatedExternalMarks = requiredMarks[subject.selectedGrade];
     selectedGrade = subject.selectedGrade;
   } else {
-    // Calculate based on minimum passing marks
-    estimatedExternalMarks = Math.max(
-      requiredMarks.P,
-      getMinimumExternalMarks(subject.credits)
-    );
+    estimatedExternalMarks = requiredMarks.P;
     selectedGrade = 'P';
   }
 
-  // Ensure external marks don't exceed maximum
-  estimatedExternalMarks = Math.min(estimatedExternalMarks, getMaximumExternalMarks(subject.credits));
+  estimatedExternalMarks = Math.min(
+    estimatedExternalMarks,
+    subject.credits === 1 ? 50 : 100
+  );
 
-  // Calculate total marks and percentage based on credit type
   let totalPercentage: number;
-  
   if (subject.credits === 1) {
     totalPercentage = subject.internalMarks + estimatedExternalMarks;
   } else {
@@ -129,7 +77,7 @@ export const calculateSubjectGrade = (subject: Subject): Subject => {
     grade: finalGrade,
     gradePoints,
     totalMarks: totalPercentage,
-    estimatedExternalMarks,
+    estimatedExternalMarks
   };
 };
 
@@ -140,10 +88,7 @@ export const calculateSGPA = (subjects: Subject[]): number => {
     return sum + subject.credits * (subject.gradePoints || 0);
   }, 0);
 
-  const totalCredits = subjects.reduce(
-    (sum, subject) => sum + subject.credits,
-    0
-  );
+  const totalCredits = subjects.reduce((sum, subject) => sum + subject.credits, 0);
 
   return totalCredits > 0 ? totalCreditPoints / totalCredits : 0;
 };
