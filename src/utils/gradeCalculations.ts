@@ -16,9 +16,10 @@ export const calculateRequiredMarks = (internalMarks: number, credits: number) =
 
   const semEndMarksForO = credits === 1 ? x : x * 2;
 
-  const getRequired = (offset: number) => {
-    const requiredMarks = semEndMarksForO - offset;
-    return credits === 1 ? Math.max(17.5, requiredMarks) : Math.max(35, requiredMarks);
+  const getRequired = (deduction: number) => {
+    const base = credits === 1 ? x : x * 2;
+    const required = base - deduction;
+    return credits === 1 ? Math.max(17.5, required) : Math.max(35, required);
   };
 
   return {
